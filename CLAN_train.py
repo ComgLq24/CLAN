@@ -309,8 +309,6 @@ def main():
         # Train with Source
         _, batch = next(trainloader_iter)
         images_s, labels_s, _, _, _ = batch
-        print(images_s.size())
-        print(labels_s.size())
         images_s = Variable(images_s).cuda(args.gpu)
         pred_source1, pred_source2 = model(images_s)
         pred_source1 = interp_source(pred_source1)
