@@ -9,6 +9,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 import os
 import os.path as osp
+from PIL import Image
 
 from model.CLAN_G import Res_Deeplab
 from model.CLAN_D import FCDiscriminator
@@ -19,6 +20,21 @@ from utils.loss import WeightedBCEWithLogitsLoss
 from dataset.gta5_dataset import GTA5DataSet
 from dataset.synthia_dataset import SYNTHIADataSet
 from dataset.cityscapes_dataset import cityscapesDataSet
+
+palette = [128, 64, 128, 244, 35, 232, 70, 70, 70, 102, 102, 156, 190, 153, 153, 153, 153, 153, 250, 170, 30,
+           220, 220, 0, 107, 142, 35, 152, 251, 152, 70, 130, 180, 220, 20, 60, 255, 0, 0, 0, 0, 142, 0, 0, 70,
+           0, 60, 100, 0, 80, 100, 0, 0, 230, 119, 11, 32]
+zero_pad = 256 * 3 - len(palette)
+for i in range(zero_pad):
+    palette.append(0)
+
+
+def colorize_mask(mask):
+    # mask: numpy array of the mask
+    new_mask = Image.fromarray(mask.astype(np.uint8)).convert('P')
+    new_mask.putpalette(palette)
+
+    return new_mask
 
 IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
 
@@ -43,8 +59,8 @@ SNAPSHOT_DIR = './snapshots/'
 WEIGHT_DECAY = 0.0005
 LEARNING_RATE = 2.5e-4
 LEARNING_RATE_D = 1e-4
-NUM_STEPS = 100000
-NUM_STEPS_STOP = 100000  # Use damping instead of early stopping
+NUM_STEPS = 20000
+NUM_STEPS_STOP = 20000  # Use damping instead of early stopping
 PREHEAT_STEPS = int(NUM_STEPS_STOP / 20)
 POWER = 0.9
 RANDOM_SEED = 1234
@@ -311,8 +327,16 @@ def main():
         images_s, labels_s, _, _, _ = batch
         images_s = Variable(images_s).cuda(args.gpu)
         pred_source1, pred_source2 = model(images_s)
+        output = interp_source(pred_source1 + pred_source2).cpu().data[0].numpy()
         pred_source1 = interp_source(pred_source1)
         pred_source2 = interp_source(pred_source2)
+
+        # save sample
+        if i_iter % args.save_pred_every == 0 and i_iter != 0:
+            output = output.transpose(1, 2, 0)
+            output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
+            output_col = colorize_mask(output)
+            output_col.save('./result/result_%s.png' % i_iter)
 
         # Segmentation Loss
         loss_seg = (loss_calc(pred_source1, labels_s, args.gpu) + loss_calc(pred_source2, labels_s, args.gpu))
@@ -415,11 +439,13 @@ def main():
             torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(args.num_steps) + '.pth'))
             torch.save(model_D.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(args.num_steps) + '_D.pth'))
             break
-
+        # save one test result
         if i_iter % args.save_pred_every == 0 and i_iter != 0:
             print('taking snapshot ...')
             torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(i_iter) + '.pth'))
             torch.save(model_D.state_dict(), osp.join(args.snapshot_dir, 'GTA5_' + str(i_iter) + '_D.pth'))
+
+
 
 
 if __name__ == '__main__':
