@@ -23,7 +23,9 @@ class GTA5DataSet(data.Dataset):
         self.files = []
 
         self.id_to_trainid = {'#000000': 0, '#00fdff': 1, '#73fa79': 2, '#0433ff': 3, '#005493': 9, '#941100': 5,
-                              '#9437ff': 6, '#008f00': 7, '#fffc79': 8, '#945200': 10, '#ff2f92': 11}
+                              '#9437ff': 6, '#008f00': 7, '#fffc79': 8, '#945200': 10, '#ff2f92': 11, '#424242': 12,
+                              '#ffd479': 13, '#d6d6d6': 14, '#a9a9a9': 15, '#ff9300': 16, '#d783ff': 17, '#d4fb79': 18,
+                              }
 
         # for split in ["train", "trainval", "val"]:
         for name in self.img_ids:

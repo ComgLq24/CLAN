@@ -5,8 +5,10 @@ from torch.autograd import Variable
 from torch.utils import data, model_zoo
 from model.CLAN_G import Res_Deeplab
 from dataset.cityscapes_dataset import cityscapesDataSet
+from dataset.gta5_dataset import GTA5DataSet
 import os
 from PIL import Image
+from train_viewer import Viewer
 import torch.nn as nn
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
@@ -21,6 +23,7 @@ NUM_CLASSES = 19
 NUM_STEPS = 500 # Number of images in the validation set.
 RESTORE_FROM = 'http://vllab.ucmerced.edu/ytsai/CVPR18/GTA2Cityscapes_multi-ed35151c.pth'
 SET = 'val'
+INPUT_SIZE_SOURCE = ()
 
 palette = [128, 64, 128, 244, 35, 232, 70, 70, 70, 102, 102, 156, 190, 153, 153, 153, 153, 153, 250, 170, 30,
            220, 220, 0, 107, 142, 35, 152, 251, 152, 70, 130, 180, 220, 20, 60, 255, 0, 0, 0, 0, 142, 0, 0, 70,
@@ -90,6 +93,7 @@ def main():
     
     testloader = data.DataLoader(cityscapesDataSet(args.data_dir, args.data_list, crop_size=(1024, 512), mean=IMG_MEAN, scale=False, mirror=False, set=args.set),
                                     batch_size=1, shuffle=False, pin_memory=True)
+    # replace testloader with images from source domain
 
     interp = nn.Upsample(size=(1024, 2048), mode='bilinear', align_corners=True)
     
